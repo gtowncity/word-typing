@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>word-typing</title>
+  <style>
+    :root {
+      --bg: #10131a;
+      --panel: rgba(255, 255, 255, 0.08);
+      --panel-strong: rgba(255, 255, 255, 0.13);
+      --text: #f5f7fb;
+      --muted: #9ca7ba;
+      --good: #6ee7a8;
+      --bad: #ff5c7a;
+      --focus: #8ab4ff;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 20% 10%, rgba(138, 180, 255, 0.28), transparent 32%),
+        radial-gradient(circle at 80% 80%, rgba(110, 231, 168, 0.18), transparent 35%),
+        var(--bg);
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .app {
+      width: min(940px, calc(100vw - 48px));
+      padding: 32px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 30px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(22px);
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 28px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .hint {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .mode-button,
+    .primary-button {
+      border: 0;
+      border-radius: 999px;
+      color: var(--text);
+      background: var(--panel-strong);
+      padding: 11px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .mode-button:hover,
+    .primary-button:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    .setup {
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .setup-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+    }
+
+    input {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      outline: none;
+      border-radius: 18px;
+      background: rgba(0, 0, 0, 0.25);
+      color: var(--text);
+      padding: 17px 18px;
+      font: inherit;
+      font-size: 20px;
+      letter-spacing: 0.02em;
+    }
+
+    input:focus {
+      border-color: rgba(138, 180, 255, 0.8);
+      box-shadow: 0 0 0 4px rgba(138, 180, 255, 0.13);
+    }
+
+    .practice {
+      display: none;
+    }
+
+    .word-card {
+      position: relative;
+      min-height: 150px;
+      padding: 28px;
+      border-radius: 26px;
+      background: rgba(0, 0, 0, 0.24);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      display: grid;
+      align-content: center;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .word-card::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      transition: opacity 120ms ease;
+      pointer-events: none;
+    }
+
+    .word-card.good::before {
+      opacity: 1;
+      background: radial-gradient(circle at center, rgba(110, 231, 168, 0.22), transparent 68%);
+    }
+
+    .word-card.bad::before {
+      opacity: 1;
+      background: radial-gradient(circle at center, rgba(255, 92, 122, 0.26), transparent 68%);
+    }
+
+    .target {
+      position: relative;
+      z-index: 1;
+      font-size: clamp(34px, 6vw, 60px);
+      font-weight: 850;
+      letter-spacing: 0.015em;
+      overflow-wrap: anywhere;
+      line-height: 1.1;
+    }
+
+    .done {
+      color: var(--good);
+    }
+
+    .todo {
+      color: rgba(245, 247, 251, 0.35);
+    }
+
+    .cursor-char {
+      color: var(--text);
+      text-decoration: underline;
+      text-decoration-thickness: 4px;
+      text-underline-offset: 8px;
+    }
+
+    .typing-input {
+      font-size: 28px;
+      font-weight: 760;
+      text-align: center;
+    }
+
+    .feedback {
+      min-height: 26px;
+      margin: 14px 0 22px;
+      color: var(--muted);
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .feedback.bad {
+      color: var(--bad);
+    }
+
+    .feedback.good {
+      color: var(--good);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 15px;
+      border-radius: 18px;
+      background: var(--panel);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .stat span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 7px;
+    }
+
+    .stat strong {
+      font-size: 24px;
+      letter-spacing: -0.03em;
+    }
+
+    .shake {
+      animation: shake 160ms ease-in-out;
+    }
+
+    .pop {
+      animation: pop 170ms ease-out;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-8px); }
+      55% { transform: translateX(7px); }
+      80% { transform: translateX(-4px); }
+    }
+
+    @keyframes pop {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.025); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" id="app">
+    <div class="topbar">
+      <div>
+        <h1>word-typing</h1>
+        <p class="hint">Trainiere ein einzelnes Wort so schnell und fehlerfrei wie möglich.</p>
+      </div>
+      <button class="mode-button" id="changeWordButton" type="button">Wort ändern</button>
+    </div>
+
+    <section class="setup" id="setup">
+      <label for="wordInput">Trainingswort</label>
+      <div class="setup-row">
+        <input id="wordInput" autocomplete="off" spellcheck="false" placeholder="dacqiv-0sijgD-doS7Buq" />
+        <button class="primary-button" id="startButton" type="button">Starten</button>
+      </div>
+    </section>
+
+    <section class="practice" id="practice">
+      <div class="word-card" id="wordCard">
+        <div class="target" id="targetDisplay"></div>
+      </div>
+
+      <input class="typing-input" id="typingInput" autocomplete="off" spellcheck="false" autocapitalize="off" />
+      <div class="feedback" id="feedback">Tippen startet die Zeit. Jeder Fehler setzt sofort zurück.</div>
+
+      <div class="stats">
+        <div class="stat"><span>Richtig</span><strong id="successCount">0</strong></div>
+        <div class="stat"><span>Fehler</span><strong id="errorCount">0</strong></div>
+        <div class="stat"><span>Serie</span><strong id="streakCount">0</strong></div>
+        <div class="stat"><span>Bestzeit</span><strong id="bestTime">–</strong></div>
+        <div class="stat"><span>Ø Zeit</span><strong id="averageTime">–</strong></div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const storageKey = "word-typing-state-v1";
+
+    const state = loadState();
+    let targetWord = state.word || "";
+    let startedAt = null;
+    let flashTimer = null;
+
+    const setup = document.querySelector("#setup");
+    const practice = document.querySelector("#practice");
+    const wordInput = document.querySelector("#wordInput");
+    const startButton = document.querySelector("#startButton");
+    const changeWordButton = document.querySelector("#changeWordButton");
+    const typingInput = document.querySelector("#typingInput");
+    const targetDisplay = document.querySelector("#targetDisplay");
+    const wordCard = document.querySelector("#wordCard");
+    const feedback = document.querySelector("#feedback");
+
+    const successCount = document.querySelector("#successCount");
+    const errorCount = document.querySelector("#errorCount");
+    const streakCount = document.querySelector("#streakCount");
+    const bestTime = document.querySelector("#bestTime");
+    const averageTime = document.querySelector("#averageTime");
+
+    wordInput.value = targetWord;
+    updateStats();
+
+    if (targetWord) {
+      showPractice();
+    } else {
+      changeWordButton.style.display = "none";
+      wordInput.focus();
+    }
+
+    startButton.addEventListener("click", startPractice);
+    wordInput.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") startPractice();
+    });
+
+    changeWordButton.addEventListener("click", () => {
+      setup.style.display = "grid";
+      practice.style.display = "none";
+      changeWordButton.style.display = "none";
+      wordInput.focus();
+      wordInput.select();
+    });
+
+    typingInput.addEventListener("input", () => {
+      const typed = typingInput.value;
+
+      if (!startedAt && typed.length > 0) {
+        startedAt = performance.now();
+      }
+
+      if (!targetWord.startsWith(typed)) {
+        registerError();
+        return;
+      }
+
+      renderTarget(typed.length);
+
+      if (typed === targetWord) {
+        registerSuccess();
+      }
+    });
+
+    typingInput.addEventListener("paste", (event) => event.preventDefault());
+
+    function startPractice() {
+      const nextWord = wordInput.value.trim();
+      if (!nextWord) {
+        wordInput.focus();
+        return;
+      }
+
+      targetWord = nextWord;
+      state.word = targetWord;
+      saveState();
+      showPractice();
+    }
+
+    function showPractice() {
+      setup.style.display = "none";
+      practice.style.display = "block";
+      changeWordButton.style.display = "inline-flex";
+      resetAttempt();
+      renderTarget(0);
+      typingInput.focus();
+    }
+
+    function registerError() {
+      state.errors += 1;
+      state.streak = 0;
+      saveState();
+      updateStats();
+      feedback.textContent = "Fehler. Sofort neu starten.";
+      feedback.className = "feedback bad";
+      flash("bad", "shake");
+      resetAttempt();
+    }
+
+    function registerSuccess() {
+      const time = Math.max(0, performance.now() - startedAt);
+      state.successes += 1;
+      state.streak += 1;
+      state.times.push(time);
+      if (state.times.length > 100) state.times.shift();
+      state.bestTime = state.bestTime ? Math.min(state.bestTime, time) : time;
+      saveState();
+      updateStats();
+      feedback.textContent = `Richtig in ${formatTime(time)}.`;
+      feedback.className = "feedback good";
+      flash("good", "pop");
+      resetAttempt();
+    }
+
+    function resetAttempt() {
+      startedAt = null;
+      typingInput.value = "";
+      renderTarget(0);
+    }
+
+    function renderTarget(doneCount) {
+      const safeWord = escapeHtml(targetWord);
+      const done = escapeHtml(targetWord.slice(0, doneCount));
+      const cursor = escapeHtml(targetWord.slice(doneCount, doneCount + 1));
+      const todo = escapeHtml(targetWord.slice(doneCount + 1));
+
+      if (!safeWord) {
+        targetDisplay.textContent = "";
+        return;
+      }
+
+      targetDisplay.innerHTML = `
+        <span class="done">${done}</span><span class="cursor-char">${cursor}</span><span class="todo">${todo}</span>
+      `;
+    }
+
+    function flash(cardClass, animationClass) {
+      clearTimeout(flashTimer);
+      wordCard.classList.remove("good", "bad", "shake", "pop");
+      void wordCard.offsetWidth;
+      wordCard.classList.add(cardClass, animationClass);
+      flashTimer = setTimeout(() => {
+        wordCard.classList.remove("good", "bad", "shake", "pop");
+      }, 180);
+    }
+
+    function updateStats() {
+      successCount.textContent = state.successes;
+      errorCount.textContent = state.errors;
+      streakCount.textContent = state.streak;
+      bestTime.textContent = state.bestTime ? formatTime(state.bestTime) : "–";
+
+      if (state.times.length === 0) {
+        averageTime.textContent = "–";
+      } else {
+        const average = state.times.reduce((sum, time) => sum + time, 0) / state.times.length;
+        averageTime.textContent = formatTime(average);
+      }
+    }
+
+    function formatTime(milliseconds) {
+      if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`;
+      return `${(milliseconds / 1000).toFixed(2)} s`;
+    }
+
+    function loadState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(storageKey));
+        return {
+          word: saved?.word || "",
+          successes: saved?.successes || 0,
+          errors: saved?.errors || 0,
+          streak: saved?.streak || 0,
+          bestTime: saved?.bestTime || null,
+          times: Array.isArray(saved?.times) ? saved.times : []
+        };
+      } catch {
+        return { word: "", successes: 0, errors: 0, streak: 0, bestTime: null, times: [] };
+      }
+    }
+
+    function saveState() {
+      localStorage.setItem(storageKey, JSON.stringify(state));
+    }
+
+    function escapeHtml(value) {
+      return value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
