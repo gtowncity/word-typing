@@ -1,489 +1,65 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>word-typing</title>
-  <style>
-    :root {
-      --bg: #10131a;
-      --panel: rgba(255, 255, 255, 0.08);
-      --panel-strong: rgba(255, 255, 255, 0.13);
-      --text: #f5f7fb;
-      --muted: #9ca7ba;
-      --good: #6ee7a8;
-      --bad: #ff5c7a;
-      --focus: #8ab4ff;
-      --shadow: 0 24px 80px rgba(0, 0, 0, 0.36);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      color: var(--text);
-      background:
-        radial-gradient(circle at 20% 10%, rgba(138, 180, 255, 0.28), transparent 32%),
-        radial-gradient(circle at 80% 80%, rgba(110, 231, 168, 0.18), transparent 35%),
-        var(--bg);
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-    }
-
-    .app {
-      width: min(940px, calc(100vw - 48px));
-      padding: 32px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: 30px;
-      background: linear-gradient(145deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05));
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(22px);
-    }
-
-    .topbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 18px;
-      margin-bottom: 28px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 24px;
-      letter-spacing: -0.03em;
-    }
-
-    .hint {
-      margin: 6px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .mode-button,
-    .primary-button {
-      border: 0;
-      border-radius: 999px;
-      color: var(--text);
-      background: var(--panel-strong);
-      padding: 11px 16px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: transform 160ms ease, background 160ms ease;
-    }
-
-    .mode-button:hover,
-    .primary-button:hover {
-      transform: translateY(-1px);
-      background: rgba(255, 255, 255, 0.18);
-    }
-
-    .setup {
-      display: grid;
-      gap: 16px;
-    }
-
-    label {
-      color: var(--muted);
-      font-size: 13px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .setup-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 12px;
-    }
-
-    input {
-      width: 100%;
-      border: 1px solid rgba(255, 255, 255, 0.16);
-      outline: none;
-      border-radius: 18px;
-      background: rgba(0, 0, 0, 0.25);
-      color: var(--text);
-      padding: 17px 18px;
-      font: inherit;
-      font-size: 20px;
-      letter-spacing: 0.02em;
-    }
-
-    input:focus {
-      border-color: rgba(138, 180, 255, 0.8);
-      box-shadow: 0 0 0 4px rgba(138, 180, 255, 0.13);
-    }
-
-    .practice {
-      display: none;
-    }
-
-    .word-card {
-      position: relative;
-      min-height: 150px;
-      padding: 28px;
-      border-radius: 26px;
-      background: rgba(0, 0, 0, 0.24);
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      display: grid;
-      align-content: center;
-      overflow: hidden;
-      margin-bottom: 20px;
-    }
-
-    .word-card::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      transition: opacity 120ms ease;
-      pointer-events: none;
-    }
-
-    .word-card.good::before {
-      opacity: 1;
-      background: radial-gradient(circle at center, rgba(110, 231, 168, 0.22), transparent 68%);
-    }
-
-    .word-card.bad::before {
-      opacity: 1;
-      background: radial-gradient(circle at center, rgba(255, 92, 122, 0.26), transparent 68%);
-    }
-
-    .target {
-      position: relative;
-      z-index: 1;
-      font-size: clamp(34px, 6vw, 60px);
-      font-weight: 850;
-      letter-spacing: 0.015em;
-      overflow-wrap: anywhere;
-      line-height: 1.1;
-    }
-
-    .done {
-      color: var(--good);
-    }
-
-    .todo {
-      color: rgba(245, 247, 251, 0.35);
-    }
-
-    .cursor-char {
-      color: var(--text);
-      text-decoration: underline;
-      text-decoration-thickness: 4px;
-      text-underline-offset: 8px;
-    }
-
-    .typing-input {
-      font-size: 28px;
-      font-weight: 760;
-      text-align: center;
-    }
-
-    .feedback {
-      min-height: 26px;
-      margin: 14px 0 22px;
-      color: var(--muted);
-      font-weight: 700;
-      text-align: center;
-    }
-
-    .feedback.bad {
-      color: var(--bad);
-    }
-
-    .feedback.good {
-      color: var(--good);
-    }
-
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 12px;
-    }
-
-    .stat {
-      padding: 15px;
-      border-radius: 18px;
-      background: var(--panel);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .stat span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      margin-bottom: 7px;
-    }
-
-    .stat strong {
-      font-size: 24px;
-      letter-spacing: -0.03em;
-    }
-
-    .shake {
-      animation: shake 160ms ease-in-out;
-    }
-
-    .pop {
-      animation: pop 170ms ease-out;
-    }
-
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      25% { transform: translateX(-8px); }
-      55% { transform: translateX(7px); }
-      80% { transform: translateX(-4px); }
-    }
-
-    @keyframes pop {
-      0% { transform: scale(1); }
-      45% { transform: scale(1.025); }
-      100% { transform: scale(1); }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>word-typing</title>
+<style>
+:root{--bg:#090b14;--card:rgba(255,255,255,.08);--card2:rgba(255,255,255,.13);--line:rgba(255,255,255,.14);--text:#f5f7fb;--muted:#9aa6bd;--good:#6ee7a8;--bad:#ff5c7a;--gold:#ffd166;--blue:#8ab4ff;--purple:#c49bff;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;min-height:100vh;color:var(--text);background:radial-gradient(circle at 12% 10%,rgba(138,180,255,.25),transparent 30%),radial-gradient(circle at 85% 80%,rgba(196,155,255,.18),transparent 33%),linear-gradient(135deg,#080a12,#151b2d 55%,#080a12);overflow:hidden}body:before{content:"";position:fixed;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:46px 46px;mask-image:radial-gradient(circle,#000,transparent 75%);pointer-events:none}.wrap{width:min(1160px,calc(100vw - 52px));margin:28px auto;position:relative}.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:16px}h1,h2,p{margin:0}h1{font-size:25px;letter-spacing:-.04em}.sub{color:var(--muted);font-size:14px;margin-top:5px}button{border:1px solid var(--line);border-radius:999px;background:var(--card2);color:var(--text);padding:11px 15px;font:inherit;font-weight:800;cursor:pointer;transition:.15s}button:hover{transform:translateY(-1px);background:rgba(255,255,255,.18)}button.primary{background:linear-gradient(135deg,var(--good),var(--blue));color:#071016;border:0}.danger{color:var(--bad)}.card{border:1px solid var(--line);background:linear-gradient(145deg,rgba(255,255,255,.1),rgba(255,255,255,.045));box-shadow:0 26px 90px rgba(0,0,0,.45);backdrop-filter:blur(22px);border-radius:30px}.setup{min-height:560px;display:grid;place-items:center;padding:42px;text-align:center}.setupBox{width:min(760px,100%);display:grid;gap:18px}.setup h2{font-size:48px;letter-spacing:-.06em}.setup p{color:var(--muted);line-height:1.6}.row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end}label{display:block;text-align:left;color:var(--muted);font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;margin-bottom:8px}input{width:100%;border:1px solid rgba(255,255,255,.16);outline:0;border-radius:20px;background:rgba(0,0,0,.3);color:var(--text);padding:18px;font:inherit;font-size:22px;letter-spacing:.025em}input:focus{border-color:rgba(138,180,255,.9);box-shadow:0 0 0 4px rgba(138,180,255,.12)}.game{display:none}.hud{display:grid;grid-template-columns:1.25fr repeat(4,1fr);gap:12px;margin-bottom:14px}.hudBox{padding:14px;border-radius:20px;background:var(--card);border:1px solid var(--line);min-height:78px}.label{display:block;color:var(--muted);font-size:11px;font-weight:900;letter-spacing:.11em;text-transform:uppercase;margin-bottom:8px}.value{font-size:25px;font-weight:950;letter-spacing:-.04em}.track{height:14px;border-radius:999px;overflow:hidden;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.08)}.fill{height:100%;width:100%;border-radius:inherit;transition:width .22s}.hpFill{background:linear-gradient(90deg,var(--bad),var(--gold))}.enemyFill{background:linear-gradient(90deg,var(--purple),var(--good))}.combat{display:grid;grid-template-columns:.9fr 1.35fr;gap:14px}.panel{padding:24px;border-radius:28px;background:rgba(16,22,36,.86);border:1px solid var(--line);box-shadow:0 20px 70px rgba(0,0,0,.28)}.enemyPanel{min-height:430px;display:grid;align-content:space-between;gap:22px;overflow:hidden;position:relative}.enemyPanel:before{content:"";position:absolute;inset:-50%;background:conic-gradient(transparent,rgba(138,180,255,.13),transparent,rgba(255,92,122,.1),transparent);animation:spin 13s linear infinite}.enemyInner{position:relative;z-index:1;display:grid;gap:22px;height:100%;align-content:space-between}.enemyTop{display:flex;justify-content:space-between;gap:12px;align-items:baseline}.enemyName{font-size:31px;font-weight:950;letter-spacing:-.05em}.kind{color:var(--gold);font-size:12px;font-weight:950;text-transform:uppercase;letter-spacing:.12em}.enemyIcon{height:190px;display:grid;place-items:center;font-size:82px;font-weight:950;letter-spacing:-.08em;color:rgba(245,247,251,.86);text-shadow:0 0 28px rgba(138,180,255,.35)}.hpText{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;font-weight:850;margin-bottom:9px}.typingPanel{min-height:430px;display:grid;gap:18px;align-content:start}.targetCard{min-height:160px;padding:28px;border-radius:26px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.12);display:grid;align-content:center;overflow:hidden;position:relative}.targetCard:before{content:"";position:absolute;inset:0;opacity:0;transition:.12s}.targetCard.good:before{opacity:1;background:radial-gradient(circle,rgba(110,231,168,.24),transparent 70%)}.targetCard.bad:before{opacity:1;background:radial-gradient(circle,rgba(255,92,122,.28),transparent 70%)}.target{position:relative;z-index:1;font:950 clamp(34px,4.5vw,58px)/1.08 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;overflow-wrap:anywhere}.done{color:var(--good)}.todo{color:rgba(245,247,251,.35)}.cursor{color:var(--text);text-decoration:underline;text-decoration-thickness:4px;text-underline-offset:9px}.typing{font:850 30px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;text-align:center}.feedback{min-height:28px;text-align:center;color:var(--muted);font-weight:850}.feedback.good{color:var(--good)}.feedback.bad{color:var(--bad)}.feedback.gold{color:var(--gold)}.mods{display:flex;gap:8px;flex-wrap:wrap}.pill{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.11);color:var(--muted);font-size:12px;font-weight:900}.log{margin-top:14px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;padding:14px}.logItem{padding:14px;border-radius:18px;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.08);color:var(--muted);font-size:13px;line-height:1.45}.logItem strong{display:block;color:var(--text);font-size:15px;margin-bottom:4px}.overlay{display:none;position:fixed;inset:0;z-index:10;place-items:center;background:rgba(2,4,10,.72);backdrop-filter:blur(18px);padding:28px}.modal{width:min(920px,100%);padding:30px;border-radius:30px;background:linear-gradient(145deg,rgba(22,30,50,.96),rgba(11,14,24,.96));border:1px solid rgba(255,255,255,.14);box-shadow:0 26px 90px rgba(0,0,0,.5)}.modal h2{font-size:38px;letter-spacing:-.06em;margin-bottom:8px}.modal p{color:var(--muted);line-height:1.6;margin-bottom:22px}.choices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.choice{border-radius:24px;padding:18px;min-height:178px;text-align:left;background:rgba(255,255,255,.075);display:grid;align-content:space-between}.choiceTitle{font-size:19px;font-weight:950;letter-spacing:-.03em;margin-bottom:8px}.choiceDesc{color:var(--muted);line-height:1.5;font-size:14px}.choiceTag{color:var(--gold);font-size:11px;font-weight:950;letter-spacing:.12em;text-transform:uppercase}.modalActions{display:flex;gap:10px;margin-top:18px}.hit{animation:hit .19s ease}.shake{animation:shake .16s ease}.enemyHit{animation:enemyHit .18s ease}.enemyGone{animation:enemyGone .32s ease forwards}@keyframes spin{to{transform:rotate(360deg)}}@keyframes hit{45%{transform:scale(1.025)}}@keyframes shake{25%{transform:translateX(-10px)}55%{transform:translateX(8px)}80%{transform:translateX(-4px)}}@keyframes enemyHit{45%{transform:translateX(8px) scale(1.02);filter:brightness(1.55)}}@keyframes enemyGone{to{transform:scale(.94);opacity:.25;filter:blur(2px)}}
+</style>
 </head>
 <body>
-  <main class="app" id="app">
-    <div class="topbar">
-      <div>
-        <h1>word-typing</h1>
-        <p class="hint">Trainiere ein einzelnes Wort so schnell und fehlerfrei wie möglich.</p>
-      </div>
-      <button class="mode-button" id="changeWordButton" type="button">Wort ändern</button>
-    </div>
-
-    <section class="setup" id="setup">
-      <label for="wordInput">Trainingswort</label>
-      <div class="setup-row">
-        <input id="wordInput" autocomplete="off" spellcheck="false" placeholder="dacqiv-0sijgD-doS7Buq" />
-        <button class="primary-button" id="startButton" type="button">Starten</button>
-      </div>
-    </section>
-
-    <section class="practice" id="practice">
-      <div class="word-card" id="wordCard">
-        <div class="target" id="targetDisplay"></div>
-      </div>
-
-      <input class="typing-input" id="typingInput" autocomplete="off" spellcheck="false" autocapitalize="off" />
-      <div class="feedback" id="feedback">Tippen startet die Zeit. Jeder Fehler setzt sofort zurück.</div>
-
-      <div class="stats">
-        <div class="stat"><span>Richtig</span><strong id="successCount">0</strong></div>
-        <div class="stat"><span>Fehler</span><strong id="errorCount">0</strong></div>
-        <div class="stat"><span>Serie</span><strong id="streakCount">0</strong></div>
-        <div class="stat"><span>Bestzeit</span><strong id="bestTime">–</strong></div>
-        <div class="stat"><span>Ø Zeit</span><strong id="averageTime">–</strong></div>
-      </div>
-    </section>
-  </main>
-
-  <script>
-    const storageKey = "word-typing-state-v1";
-
-    const state = loadState();
-    let targetWord = state.word || "";
-    let startedAt = null;
-    let flashTimer = null;
-
-    const setup = document.querySelector("#setup");
-    const practice = document.querySelector("#practice");
-    const wordInput = document.querySelector("#wordInput");
-    const startButton = document.querySelector("#startButton");
-    const changeWordButton = document.querySelector("#changeWordButton");
-    const typingInput = document.querySelector("#typingInput");
-    const targetDisplay = document.querySelector("#targetDisplay");
-    const wordCard = document.querySelector("#wordCard");
-    const feedback = document.querySelector("#feedback");
-
-    const successCount = document.querySelector("#successCount");
-    const errorCount = document.querySelector("#errorCount");
-    const streakCount = document.querySelector("#streakCount");
-    const bestTime = document.querySelector("#bestTime");
-    const averageTime = document.querySelector("#averageTime");
-
-    wordInput.value = targetWord;
-    updateStats();
-
-    if (targetWord) {
-      showPractice();
-    } else {
-      changeWordButton.style.display = "none";
-      wordInput.focus();
-    }
-
-    startButton.addEventListener("click", startPractice);
-    wordInput.addEventListener("keydown", (event) => {
-      if (event.key === "Enter") startPractice();
-    });
-
-    changeWordButton.addEventListener("click", () => {
-      setup.style.display = "grid";
-      practice.style.display = "none";
-      changeWordButton.style.display = "none";
-      wordInput.focus();
-      wordInput.select();
-    });
-
-    typingInput.addEventListener("input", () => {
-      const typed = typingInput.value;
-
-      if (!startedAt && typed.length > 0) {
-        startedAt = performance.now();
-      }
-
-      if (!targetWord.startsWith(typed)) {
-        registerError();
-        return;
-      }
-
-      renderTarget(typed.length);
-
-      if (typed === targetWord) {
-        registerSuccess();
-      }
-    });
-
-    typingInput.addEventListener("paste", (event) => event.preventDefault());
-
-    function startPractice() {
-      const nextWord = wordInput.value.trim();
-      if (!nextWord) {
-        wordInput.focus();
-        return;
-      }
-
-      targetWord = nextWord;
-      state.word = targetWord;
-      saveState();
-      showPractice();
-    }
-
-    function showPractice() {
-      setup.style.display = "none";
-      practice.style.display = "block";
-      changeWordButton.style.display = "inline-flex";
-      resetAttempt();
-      renderTarget(0);
-      typingInput.focus();
-    }
-
-    function registerError() {
-      state.errors += 1;
-      state.streak = 0;
-      saveState();
-      updateStats();
-      feedback.textContent = "Fehler. Sofort neu starten.";
-      feedback.className = "feedback bad";
-      flash("bad", "shake");
-      resetAttempt();
-    }
-
-    function registerSuccess() {
-      const time = Math.max(0, performance.now() - startedAt);
-      state.successes += 1;
-      state.streak += 1;
-      state.times.push(time);
-      if (state.times.length > 100) state.times.shift();
-      state.bestTime = state.bestTime ? Math.min(state.bestTime, time) : time;
-      saveState();
-      updateStats();
-      feedback.textContent = `Richtig in ${formatTime(time)}.`;
-      feedback.className = "feedback good";
-      flash("good", "pop");
-      resetAttempt();
-    }
-
-    function resetAttempt() {
-      startedAt = null;
-      typingInput.value = "";
-      renderTarget(0);
-    }
-
-    function renderTarget(doneCount) {
-      const safeWord = escapeHtml(targetWord);
-      const done = escapeHtml(targetWord.slice(0, doneCount));
-      const cursor = escapeHtml(targetWord.slice(doneCount, doneCount + 1));
-      const todo = escapeHtml(targetWord.slice(doneCount + 1));
-
-      if (!safeWord) {
-        targetDisplay.textContent = "";
-        return;
-      }
-
-      targetDisplay.innerHTML = `
-        <span class="done">${done}</span><span class="cursor-char">${cursor}</span><span class="todo">${todo}</span>
-      `;
-    }
-
-    function flash(cardClass, animationClass) {
-      clearTimeout(flashTimer);
-      wordCard.classList.remove("good", "bad", "shake", "pop");
-      void wordCard.offsetWidth;
-      wordCard.classList.add(cardClass, animationClass);
-      flashTimer = setTimeout(() => {
-        wordCard.classList.remove("good", "bad", "shake", "pop");
-      }, 180);
-    }
-
-    function updateStats() {
-      successCount.textContent = state.successes;
-      errorCount.textContent = state.errors;
-      streakCount.textContent = state.streak;
-      bestTime.textContent = state.bestTime ? formatTime(state.bestTime) : "–";
-
-      if (state.times.length === 0) {
-        averageTime.textContent = "–";
-      } else {
-        const average = state.times.reduce((sum, time) => sum + time, 0) / state.times.length;
-        averageTime.textContent = formatTime(average);
-      }
-    }
-
-    function formatTime(milliseconds) {
-      if (milliseconds < 1000) return `${Math.round(milliseconds)} ms`;
-      return `${(milliseconds / 1000).toFixed(2)} s`;
-    }
-
-    function loadState() {
-      try {
-        const saved = JSON.parse(localStorage.getItem(storageKey));
-        return {
-          word: saved?.word || "",
-          successes: saved?.successes || 0,
-          errors: saved?.errors || 0,
-          streak: saved?.streak || 0,
-          bestTime: saved?.bestTime || null,
-          times: Array.isArray(saved?.times) ? saved.times : []
-        };
-      } catch {
-        return { word: "", successes: 0, errors: 0, streak: 0, bestTime: null, times: [] };
-      }
-    }
-
-    function saveState() {
-      localStorage.setItem(storageKey, JSON.stringify(state));
-    }
-
-    function escapeHtml(value) {
-      return value
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-  </script>
+<main class="wrap">
+  <div class="top">
+    <div><h1>word-typing: dungeon run</h1><p class="sub">Ein schnelles Roguelike-Training für ein schwieriges Wort.</p></div>
+    <div><button id="changeWord">Wort ändern</button> <button id="newRun">Neuer Run</button> <button id="resetStats" class="danger">Stats reset</button></div>
+  </div>
+  <section id="setup" class="setup card"><div class="setupBox"><h2>Betritt den Dungeon</h2><p>Jedes korrekt getippte Wort ist ein Angriff. Jeder Tippfehler kostet HP, setzt sofort zurück und bricht deinen Flow.</p><div><label for="wordInput">Trainingswort</label><div class="row"><input id="wordInput" autocomplete="off" spellcheck="false" autocapitalize="off" placeholder="dacqiv-0sijgD-doS7Buq"><button id="start" class="primary">Run starten</button></div></div></div></section>
+  <section id="game" class="game">
+    <div class="hud card"><div class="hudBox"><span class="label">HP</span><div class="track"><div id="hpFill" class="fill hpFill"></div></div><p id="hpText" class="sub">5 / 5</p></div><div class="hudBox"><span class="label">Floor</span><div id="floorText" class="value">1</div></div><div class="hudBox"><span class="label">Room</span><div id="roomText" class="value">1 / 5</div></div><div class="hudBox"><span class="label">Combo</span><div id="comboText" class="value">x0</div></div><div class="hudBox"><span class="label">Best Run</span><div id="bestRunText" class="value">F1 R0</div></div></div>
+    <div class="combat"><section id="enemyPanel" class="panel enemyPanel"><div class="enemyInner"><div><div class="enemyTop"><div id="enemyName" class="enemyName">Rune Rat</div><div id="enemyKind" class="kind">Minion</div></div><p id="enemyTrait" class="sub">Leicht zu brechen.</p></div><div id="enemyIcon" class="enemyIcon">01</div><div><div class="hpText"><span>Gegner-HP</span><span id="enemyHpText">24 / 24</span></div><div class="track"><div id="enemyHpFill" class="fill enemyFill"></div></div></div></div></section>
+    <section class="panel typingPanel"><div id="targetCard" class="targetCard"><div id="target" class="target"></div></div><input id="typing" class="typing" autocomplete="off" spellcheck="false" autocapitalize="off"><div id="feedback" class="feedback">Tippe los. Die Zeit startet mit dem ersten Zeichen.</div><div id="mods" class="mods"></div></section></div>
+    <section class="log card"><div class="logItem"><strong id="lastHit">Noch kein Treffer</strong><span id="lastHitSub">Fehlerfreie Eingaben besiegen Gegner.</span></div><div class="logItem"><strong id="runStats">0 Gegner besiegt</strong><span id="runStatsSub">Dieser Run läuft.</span></div><div class="logItem"><strong id="globalStats">0 Treffer gesamt</strong><span id="globalStatsSub">Wird lokal gespeichert.</span></div></section>
+  </section>
+</main>
+<div id="upgrade" class="overlay"><div class="modal"><h2>Upgrade wählen</h2><p>Der Raum ist sicher. Wähle eine Belohnung für den nächsten Kampf.</p><div id="choices" class="choices"></div></div></div>
+<div id="gameOver" class="overlay"><div class="modal"><h2>Run beendet</h2><p id="gameOverText">Der Dungeon hat dich erwischt.</p><div class="modalActions"><button id="restart" class="primary">Nochmal</button><button id="changeDead">Wort ändern</button></div></div></div>
+<script>
+const KEY="word-typing-roguelike-v2",OLD="word-typing-state-v1",ROOMS=5;
+const enemies=[['Rune Rat','Minion','Leicht zu brechen.','01'],['Null Guard','Guard','Stabil, aber langsam.','[]'],['Bit Mantis','Hunter','Schnell und kantig.','><'],['Mirror Wisp','Wisp','Flackert zwischen Versuchen.','//'],['Code Slime','Blob','Zäh, aber berechenbar.','{}']];
+const bosses=[['Caret King','Boss','Bewacht das Ende des Wortes.','^^'],['Input Titan','Boss','Viel HP, viel Ausdauer.','##'],['Redline Core','Boss','Der Test dieses Floors.','!!']];
+const baseMeta={word:'',totalHits:0,totalErrors:0,bestTime:null,times:[],bestFloor:1,bestRoom:0,bestCombo:0,runs:0,enemiesDefeated:0};
+let meta=loadMeta(),word=meta.word||'',run=null,started=null,nextRoom=null,flashTimer=null;
+const $=s=>document.querySelector(s);
+const el={setup:$('#setup'),game:$('#game'),wordInput:$('#wordInput'),start:$('#start'),changeWord:$('#changeWord'),newRun:$('#newRun'),resetStats:$('#resetStats'),typing:$('#typing'),target:$('#target'),targetCard:$('#targetCard'),feedback:$('#feedback'),enemyPanel:$('#enemyPanel'),enemyName:$('#enemyName'),enemyKind:$('#enemyKind'),enemyTrait:$('#enemyTrait'),enemyIcon:$('#enemyIcon'),enemyHpText:$('#enemyHpText'),enemyHpFill:$('#enemyHpFill'),hpFill:$('#hpFill'),hpText:$('#hpText'),floorText:$('#floorText'),roomText:$('#roomText'),comboText:$('#comboText'),bestRunText:$('#bestRunText'),mods:$('#mods'),lastHit:$('#lastHit'),lastHitSub:$('#lastHitSub'),runStats:$('#runStats'),runStatsSub:$('#runStatsSub'),globalStats:$('#globalStats'),globalStatsSub:$('#globalStatsSub'),upgrade:$('#upgrade'),choices:$('#choices'),gameOver:$('#gameOver'),gameOverText:$('#gameOverText'),restart:$('#restart'),changeDead:$('#changeDead')};
+el.wordInput.value=word;el.changeWord.style.display=word?'inline-flex':'none';el.newRun.style.display=word?'inline-flex':'none';updateGlobal();el.wordInput.focus();
+el.start.onclick=startSetup;el.wordInput.onkeydown=e=>{if(e.key==='Enter')startSetup()};el.changeWord.onclick=showSetup;el.newRun.onclick=()=>startRun(word);el.restart.onclick=()=>startRun(word);el.changeDead.onclick=showSetup;el.resetStats.onclick=resetStats;el.typing.oninput=type;el.typing.onpaste=e=>e.preventDefault();document.onclick=()=>{if(el.game.style.display==='block'&&el.upgrade.style.display!=='grid'&&el.gameOver.style.display!=='grid')el.typing.focus()};
+function startSetup(){let w=el.wordInput.value.trim();if(!w){el.wordInput.focus();return}word=w;meta.word=w;save();startRun(w)}
+function startRun(w){if(!w)return showSetup();el.setup.style.display='none';el.game.style.display='block';el.upgrade.style.display='none';el.gameOver.style.display='none';el.changeWord.style.display='inline-flex';el.newRun.style.display='inline-flex';run={floor:1,room:1,hp:5,maxHp:5,combo:0,bestCombo:0,enemiesDefeated:0,hits:0,errors:0,power:.0,comboPower:1,bossPower:0,speedPower:0,shields:0,soft:false,enemy:null};meta.runs++;save();spawn();resetAttempt();say('Tippe los. Die Zeit startet mit dem ersten Zeichen.','');render();el.typing.focus()}
+function showSetup(){el.gameOver.style.display='none';el.upgrade.style.display='none';el.game.style.display='none';el.setup.style.display='grid';el.changeWord.style.display='none';el.wordInput.value=word;el.wordInput.focus();el.wordInput.select()}
+function type(){if(!run||!run.enemy)return;let typed=el.typing.value;if(!started&&typed.length)started=performance.now();if(!word.startsWith(typed)){error(typed.slice(-1),word.charAt(typed.length-1)||'Ende');return}drawWord(typed.length);if(typed===word)success()}
+function success(){let t=Math.max(1,performance.now()-started);run.combo++;run.bestCombo=Math.max(run.bestCombo,run.combo);run.hits++;let p=power(t);run.enemy.hp=Math.max(0,run.enemy.hp-p);meta.totalHits++;meta.bestCombo=Math.max(meta.bestCombo,run.bestCombo);meta.bestTime=meta.bestTime?Math.min(meta.bestTime,t):t;meta.times.push(t);if(meta.times.length>150)meta.times.shift();save();say(`Treffer: ${p} Power in ${fmt(t)}.`,'good');el.lastHit.textContent=`${p} Power`;el.lastHitSub.textContent=`Zeit: ${fmt(t)} | Combo x${run.combo}`;flash(el.targetCard,'good','hit');flash(el.enemyPanel,'','enemyHit');resetAttempt();render();if(run.enemy.hp<=0)defeat()}
+function error(got,exp){run.errors++;meta.totalErrors++;let block=false;if(run.shields>0){run.shields--;block=true}else run.hp--;run.combo=run.soft?Math.floor(run.combo/2):0;save();say(block?'Fehler geblockt. Schutz verbraucht.':`Fehler: '${got}' statt '${exp}'. -1 HP.`,'bad');flash(el.targetCard,'bad','shake');resetAttempt();render();if(run.hp<=0)endRun()}
+function power(t){let base=10+run.floor*3,combo=Math.floor(run.combo*2.2*run.comboPower),speed=t<850?1+run.speedPower+.2:t<1250?1+run.speedPower:1,boss=run.enemy.boss?1+run.bossPower:1;return Math.max(1,Math.round((base+combo)*(1+run.power)*speed*boss))}
+function defeat(){run.enemiesDefeated++;meta.enemiesDefeated++;if(run.floor>meta.bestFloor||(run.floor===meta.bestFloor&&run.room>meta.bestRoom)){meta.bestFloor=run.floor;meta.bestRoom=run.room}save();say(`${run.enemy.name} besiegt.`,'gold');flash(el.enemyPanel,'','enemyGone');render();nextRoom=run.room>=ROOMS?{floor:run.floor+1,room:1}:{floor:run.floor,room:run.room+1};setTimeout(showUpgrades,350)}
+function showUpgrades(){if(!run||run.hp<=0)return;el.typing.blur();el.choices.innerHTML='';pick(3).forEach(u=>{let b=document.createElement('button');b.className='choice';b.innerHTML=`<div><div class="choiceTitle">${esc(u.t)}</div><div class="choiceDesc">${esc(u.d)}</div></div><div class="choiceTag">${esc(u.tag)}</div>`;b.onclick=()=>choose(u);el.choices.appendChild(b)});el.upgrade.style.display='grid'}
+const ups=[{t:'+1 Max HP',tag:'Survival',d:'Mehr maximale HP und 1 HP Heilung.',a:()=>{run.maxHp++;run.hp=Math.min(run.maxHp,run.hp+1)}},{t:'Reparatur',tag:'Heal',d:'Heilt 2 HP.',a:()=>run.hp=Math.min(run.maxHp,run.hp+2)},{t:'Scharfe Eingabe',tag:'Power',d:'Alle Treffer werden stärker.',a:()=>run.power+=.18},{t:'Combo-Kern',tag:'Combo',d:'Combo gibt mehr Zusatz-Power.',a:()=>run.comboPower+=.45},{t:'Fehler-Schutz',tag:'Defense',d:'Der nächste Fehler kostet keine HP.',a:()=>run.shields++},{t:'Weicher Reset',tag:'Safety',d:'Fehler halbieren Combo statt sie zu löschen.',a:()=>run.soft=true},{t:'Boss-Fokus',tag:'Boss',d:'Bossräume werden leichter.',a:()=>run.bossPower+=.3},{t:'Speed Cache',tag:'Speed',d:'Schnelle Treffer bekommen Bonus-Power.',a:()=>run.speedPower+=.25}];
+function choose(u){u.a();el.upgrade.style.display='none';run.floor=nextRoom.floor;run.room=nextRoom.room;spawn();resetAttempt();say(`${u.t} aktiv. Neuer Raum.`,'gold');render();el.typing.focus()}
+function pick(n){let p=[...ups],r=[];while(r.length<n&&p.length){r.push(p.splice(Math.floor(Math.random()*p.length),1)[0])}return r}
+function spawn(){let boss=run.room===ROOMS,t=boss?bosses[(run.floor-1)%bosses.length]:enemies[(run.floor+run.room+Math.floor(Math.random()*enemies.length))%enemies.length],max=boss?Math.round(92+run.floor*38):Math.round(28+run.floor*12+run.room*7);run.enemy={name:t[0],kind:t[1],trait:t[2],icon:t[3],boss,max,hp:max}}
+function endRun(){el.typing.blur();el.gameOverText.textContent=`Floor ${run.floor}, Room ${run.room}. Besiegt: ${run.enemiesDefeated}. Treffer: ${run.hits}. Fehler: ${run.errors}. Beste Combo: x${run.bestCombo}.`;el.gameOver.style.display='grid';render()}
+function render(){if(!run)return;el.hpFill.style.width=`${Math.max(0,run.hp/run.maxHp*100)}%`;el.hpText.textContent=`${Math.max(0,run.hp)} / ${run.maxHp}`;el.floorText.textContent=run.floor;el.roomText.textContent=`${run.room} / ${ROOMS}`;el.comboText.textContent=`x${run.combo}`;el.bestRunText.textContent=`F${meta.bestFloor} R${meta.bestRoom}`;el.enemyName.textContent=run.enemy.name;el.enemyKind.textContent=run.enemy.kind;el.enemyTrait.textContent=run.enemy.trait;el.enemyIcon.textContent=run.enemy.icon;el.enemyHpText.textContent=`${run.enemy.hp} / ${run.enemy.max}`;el.enemyHpFill.style.width=`${Math.max(0,run.enemy.hp/run.enemy.max*100)}%`;el.runStats.textContent=`${run.enemiesDefeated} Gegner besiegt`;el.runStatsSub.textContent=`Treffer ${run.hits} | Fehler ${run.errors} | Beste Combo x${run.bestCombo}`;el.mods.innerHTML=mods().map(m=>`<span class="pill">${esc(m)}</span>`).join('');updateGlobal()}
+function mods(){let m=[`Power +${Math.round(run.power*100)}%`,`Combo ${run.comboPower.toFixed(1)}x`];if(run.bossPower)m.push(`Boss +${Math.round(run.bossPower*100)}%`);if(run.speedPower)m.push(`Speed +${Math.round(run.speedPower*100)}%`);if(run.shields)m.push(`Schutz ${run.shields}`);if(run.soft)m.push('Halber Combo-Verlust');return m}
+function resetAttempt(){started=null;el.typing.value='';drawWord(0)}
+function drawWord(n){el.target.innerHTML=`<span class="done">${esc(word.slice(0,n))}</span><span class="cursor">${esc(word.slice(n,n+1))}</span><span class="todo">${esc(word.slice(n+1))}</span>`}
+function say(t,c){el.feedback.textContent=t;el.feedback.className=`feedback ${c||''}`}
+function flash(node,c,a){clearTimeout(flashTimer);node.classList.remove('good','bad','hit','shake','enemyHit','enemyGone');void node.offsetWidth;if(c)node.classList.add(c);node.classList.add(a);setTimeout(()=>node.classList.remove('good','bad','hit','shake','enemyHit'),200)}
+function updateGlobal(){let avg=meta.times.length?meta.times.reduce((a,b)=>a+b,0)/meta.times.length:null;el.globalStats.textContent=`${meta.totalHits} Treffer gesamt`;el.globalStatsSub.textContent=`Fehler ${meta.totalErrors} | Bestzeit ${meta.bestTime?fmt(meta.bestTime):'-'} | Schnitt ${avg?fmt(avg):'-'}`;el.bestRunText.textContent=`F${meta.bestFloor} R${meta.bestRoom}`}
+function resetStats(){let w=meta.word;localStorage.removeItem(KEY);meta={...baseMeta,word:w};save();updateGlobal();if(run)render()}
+function loadMeta(){try{let s=JSON.parse(localStorage.getItem(KEY));if(s)return{...baseMeta,...s,times:Array.isArray(s.times)?s.times:[]}}catch{}try{let o=JSON.parse(localStorage.getItem(OLD));if(o){return{...baseMeta,word:o.word||'',totalHits:o.successes||0,totalErrors:o.errors||0,bestTime:o.bestTime||null,times:Array.isArray(o.times)?o.times:[]}}}catch{}return{...baseMeta}}
+function save(){localStorage.setItem(KEY,JSON.stringify(meta))}
+function fmt(ms){return ms<1000?`${Math.round(ms)} ms`:`${(ms/1000).toFixed(2)} s`}
+function esc(v){return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+</script>
 </body>
 </html>
